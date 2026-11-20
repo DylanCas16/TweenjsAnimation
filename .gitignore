@@ -1,0 +1,5 @@
+# Ignore the build output directory
+.cache
+dist/
+node_modules/
+package-lock.json
