@@ -141,6 +141,16 @@ function initInput() {
   });
 }
 
+// Elimina todos los cuerpos dinámicos (bloques y bolas) de la escena y del mundo físico
+export function clearDynamicBodies() {
+  for (const obj of rigidBodies) {
+    physicsWorld.removeRigidBody(obj.userData.physicsBody);
+    scene.remove(obj);
+    obj.geometry.dispose();
+  }
+  rigidBodies.length = 0;
+}
+
 export function updatePhysics(deltaTime) {
   physicsWorld.stepSimulation(deltaTime, 10);
 
