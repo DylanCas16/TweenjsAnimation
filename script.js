@@ -1,101 +1,144 @@
 import * as THREE from "three";
-import * as TWEEN from "@tweenjs/tween.js";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import Ammo from "ammojs-typed";
+import { initAmmo, createBoxWithPhysics, updatePhysics } from "./ammo_logic.js"
 
+let camera, scene, renderer, physicsWorld, transformAux1;
+const clock = new THREE.Clock();
+const raycaster = new THREE.Raycaster();
+const mouseCoords = new THREE.Vector2();
+const rigidBodies = [];
+const margin = 0.05;
 
-let scene, renderer;
-let camera;
-let objetos = [];
+Ammo(Ammo).then(() => {
+  initGraphics();
+  initPhysics();
+  createGround();
+  initInput();
+  animationLoop();
+});
 
-init();
-animationLoop();
-
-function init() {
-  //Cámara
+function initGraphics() {
+  camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.2, 2000);
+  camera.position.set(-14, 8, 16);
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(
-    75,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    1000
-  );
-  camera.position.set(0, 0, 10);
+  scene.background = new THREE.Color(0xbfd1e5);
 
   renderer = new THREE.WebGLRenderer();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.shadowMap.enabled = true;
   document.body.appendChild(renderer.domElement);
 
-  //Objetos
-  Cubo(-2.0, 0, 0, 3, 3, 3);
+  new OrbitControls(camera, renderer.domElement);
 
-  let tomove = objetos[0];
+  scene.add(new THREE.AmbientLight(0x707070));
+  const light = new THREE.DirectionalLight(0xffffff, 1);
+  light.position.set(-10, 18, 5);
+  light.castShadow = true;
+  scene.add(light);
 
-  // Define keyframes y propiedades a interpolar
-  // Un único twwen
-  const tween1 = new TWEEN.Tween({ x: -4.0 })
-    .to({ x: 0 }, 2000)
-    .onUpdate((coords) => {
-      tomove.position.x = coords.x;
-    })
-    .easing(TWEEN.Easing.Exponential.InOut)
-    .delay(100);
-  //Dos tweens encadenados
-  /*const tween1 = new TWEEN.Tween({ x: -4.0, y: 0, angx: 0 })
-    .to({ x: 0, y: -2, angx: Math.PI / 2 }, 2000)
-    .onUpdate((coords) => {
-      tomove.position.x = coords.x;
-      tomove.position.y = coords.y;
-      tomove.rotation.x = coords.angx;
-    })
-    .easing(TWEEN.Easing.Exponential.InOut)
-    .delay(100);
-  //.repeat(Infinity);*/
-  const tween2 = new TWEEN.Tween({ x: 0, y: 0 , angx: 0 })
-    .to({ x: 0.0, y: -2, angx: Math.PI / 2 }, 2000)
-    .onUpdate((coords) => {
-      tomove.position.x = coords.x;
-      tomove.position.y = coords.y;
-      tomove.rotation.x = coords.angx;
-    })
-    .easing(TWEEN.Easing.Exponential.InOut)
-    .delay(100);
-  //.repeat(Infinity);
-
-  const tween3 = new TWEEN.Tween({ x: 0.0, y: -2, angx: Math.PI / 2 })
-    .to({ x: -4, y: 0, angx: 0 }, 2000)
-    .onUpdate((coords) => {
-      tomove.position.x = coords.x;
-      tomove.position.y = coords.y;
-      tomove.rotation.x = coords.angx;
-    })
-    .easing(TWEEN.Easing.Exponential.InOut)
-    .delay(100);
-  //.repeat(Infinity);
-
-  tween1.chain(tween2);
-  tween2.chain(tween3);
-  tween3.chain(tween1);
-
-  tween1.start();
-}
-
-function Cubo(px, py, pz, sx, sy, sz) {
-  let geometry = new THREE.BoxBufferGeometry(sx, sy, sz);
-  //Material con o sin relleno
-  let material = new THREE.MeshNormalMaterial({
-    //wireframe: true, //Descomenta para activar modelo de alambres
+  addEventListener("resize", () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
   });
-
-  let mesh = new THREE.Mesh(geometry, material);
-  mesh.position.set(px, py, pz);
-  scene.add(mesh);
-  objetos.push(mesh);
 }
 
-//Bucle de animación
+function initPhysics() {
+  const config = new Ammo.btDefaultCollisionConfiguration();
+  physicsWorld = new Ammo.btDiscreteDynamicsWorld(
+    new Ammo.btCollisionDispatcher(config),
+    new Ammo.btDbvtBroadphase(),
+    new Ammo.btSequentialImpulseConstraintSolver(),
+    config
+  );
+  physicsWorld.setGravity(new Ammo.btVector3(0, -7.8, 0));
+  transformAux1 = new Ammo.btTransform();
+}
+
+function createRigidBody(mesh, shape, mass, pos, quat) {
+  mesh.position.copy(pos);
+  mesh.quaternion.copy(quat);
+
+  const transform = new Ammo.btTransform();
+  transform.setIdentity();
+  transform.setOrigin(new Ammo.btVector3(pos.x, pos.y, pos.z));
+  transform.setRotation(new Ammo.btQuaternion(quat.x, quat.y, quat.z, quat.w));
+
+  const inertia = new Ammo.btVector3(0, 0, 0);
+  shape.calculateLocalInertia(mass, inertia);
+
+  const info = new Ammo.btRigidBodyConstructionInfo(
+    mass,
+    new Ammo.btDefaultMotionState(transform),
+    shape,
+    inertia
+  );
+  const body = new Ammo.btRigidBody(info);
+  body.setFriction(0.5);
+
+  mesh.userData.physicsBody = body;
+  scene.add(mesh);
+  if (mass > 0) {
+    rigidBodies.push(mesh);
+    body.setActivationState(4);
+  }
+  physicsWorld.addRigidBody(body);
+  return body;
+}
+
+function createGround() {
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(40, 1, 40),
+    new THREE.MeshPhongMaterial({ color: 0xffffff })
+  );
+  mesh.receiveShadow = true;
+  const shape = new Ammo.btBoxShape(new Ammo.btVector3(20, 0.5, 20));
+  shape.setMargin(margin);
+  createRigidBody(mesh, shape, 0, new THREE.Vector3(0, -0.5, 0), new THREE.Quaternion(0, 0, 0, 1));
+}
+
+function initInput() {
+  addEventListener("pointerdown", (event) => {
+    mouseCoords.set(
+      (event.clientX / innerWidth) * 2 - 1,
+      -(event.clientY / innerHeight) * 2 + 1
+    );
+    raycaster.setFromCamera(mouseCoords, camera);
+    const { origin, direction } = raycaster.ray;
+
+    const radius = 0.4;
+    const ball = new THREE.Mesh(
+      new THREE.SphereGeometry(radius, 14, 10),
+      new THREE.MeshPhongMaterial({ color: 0x202020 })
+    );
+    ball.castShadow = true;
+
+    const shape = new Ammo.btSphereShape(radius);
+    shape.setMargin(margin);
+
+    const pos = direction.clone().add(origin);
+    const body = createRigidBody(ball, shape, 35, pos, new THREE.Quaternion(0, 0, 0, 1));
+
+    const v = direction.clone().multiplyScalar(24);
+    body.setLinearVelocity(new Ammo.btVector3(v.x, v.y, v.z));
+  });
+}
+
 function animationLoop() {
   requestAnimationFrame(animationLoop);
+  physicsWorld.stepSimulation(clock.getDelta(), 10);
 
-  TWEEN.update();
-
+  for (const mesh of rigidBodies) {
+    const ms = mesh.userData.physicsBody.getMotionState();
+    if (ms) {
+      ms.getWorldTransform(transformAux1);
+      const p = transformAux1.getOrigin();
+      const q = transformAux1.getRotation();
+      mesh.position.set(p.x(), p.y(), p.z());
+      mesh.quaternion.set(q.x(), q.y(), q.z(), q.w());
+    }
+  }
+  
   renderer.render(scene, camera);
 }
