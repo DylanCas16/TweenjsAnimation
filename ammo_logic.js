@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import Ammo from "ammojs-typed";
 
-
 const gravityConstant = 7.8;
 const margin = 0.05;
 
@@ -59,7 +58,7 @@ export function createBoxWithPhysics(sx, sy, sz, mass, pos, quat, material) {
   return object;
 }
 
-export function createRigidBody(object, physicsShape, mass, pos, quat, vel, angVel) {
+export function createRigidBody(object, physicsShape, mass, pos, quat) {
   if (pos) {
     object.position.copy(pos);
   } else {
@@ -89,15 +88,7 @@ export function createRigidBody(object, physicsShape, mass, pos, quat, vel, angV
   const body = new Ammo.btRigidBody(rbInfo);
   body.setFriction(0.5);
 
-  if (vel) {
-    body.setLinearVelocity(new Ammo.btVector3(vel.x, vel.y, vel.z));
-  }
-  if (angVel) {
-    body.setAngularVelocity(new Ammo.btVector3(angVel.x, angVel.y, angVel.z));
-  }
-
   object.userData.physicsBody = body;
-  object.userData.collided = false;
 
   scene.add(object);
 
@@ -164,8 +155,6 @@ export function updatePhysics(deltaTime) {
       const q = transformAux1.getRotation();
       objThree.position.set(p.x(), p.y(), p.z());
       objThree.quaternion.set(q.x(), q.y(), q.z(), q.w());
-
-      objThree.userData.collided = false;
     }
   }
 }

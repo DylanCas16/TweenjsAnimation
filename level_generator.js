@@ -88,9 +88,9 @@ export function generateLevel1() {
 
 export function generateLevel2() {
   return [
-    ...createWall({ origin: new THREE.Vector3(0, 5, -6), columns: 10, rows: 10 }),
-    ...createTower({ origin: new THREE.Vector3(10, 5, -15), height: 10 }),
-    ...createTower({ origin: new THREE.Vector3(-10, 5, -15), height: 10 }),
+    ...createWall({ origin: new THREE.Vector3(0, 0, -6), columns: 10, rows: 10 }),
+    ...createTower({ origin: new THREE.Vector3(10, 5, -15), height: 10, blockSize: new THREE.Vector3(2, 2, 2) }),
+    ...createTower({ origin: new THREE.Vector3(-10, 5, -15), height: 10, blockSize: new THREE.Vector3(2, 2, 2) }),
     ...createPyramid({ origin: new THREE.Vector3(0, 10, -15), levels: 4 }),
   ];
 }
@@ -98,8 +98,8 @@ export function generateLevel2() {
 export function generateLevel3() {
   return [
     ...createTower({ origin: new THREE.Vector3(0, 10, -15), height: 10 }),
-    ...createPyramid({ origin: new THREE.Vector3(10, 5, -15), levels: 8 }),
-    ...createPyramid({ origin: new THREE.Vector3(-10, 5, -15), levels: 8 }),
+    ...createPyramid({ origin: new THREE.Vector3(10, 5, -15), levels: 8 , blockSize: new THREE.Vector3(2, 2, 2)}),
+    ...createPyramid({ origin: new THREE.Vector3(-10, 5, -15), levels: 8 , blockSize: new THREE.Vector3(2, 2, 2)}),
     ...createWall({ origin: new THREE.Vector3(0, 0, -6), columns: 20, rows: 20 }),
     ...createTower({ origin: new THREE.Vector3(-8, 0, -2), height: 20 }),
     ...createTower({ origin: new THREE.Vector3(8, 0, -2), height: 20 }),
