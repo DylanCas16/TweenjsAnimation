@@ -49,3 +49,7 @@ A continuación, se compartirá un enlace al siguietne [vídeo demo](https://you
 ## Bibliografía
 
 Plantilla base para la implementación de físicas y mundo: [GitHub](https://github.com/otsedom/otsedom.github.io/blob/main/IG/S11/code/script_45_ammo.js)
+
+## Uso de la IA
+
+La IA se utilizó para la corrección de varios errores al repartir las dependencias entre los ficheros, así como para la implementación del botón y selector de niveles.
